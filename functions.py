@@ -1,3 +1,5 @@
+import socket
+
 def parse_ports(ports):
     for i in range(0, len(ports)):
         if ports[i] < 1024 or ports[i] > 64000:
@@ -22,8 +24,15 @@ def create_table(costs, routerids, outputs):
     
     routing_table = []
     for i in range(0, len(costs)):
-        routing_table.append([costs[i], outputs[i], routerids[i]]) # Create an entry for each output that was listed, of the form cost, next hop router/port (next hop router is directly connected via port), destination id
+        routing_table.append([costs[i], outputs[i], routerids[i], routerids[i]]) # Create an entry for each output that was listed, of the form cost, outgoing interface, next-hop router, destination router id
     print(routing_table)
     return routing_table
             
+def send_update(routing_table, neighbours, out_socket):
+    for router_ports in neighbours:
+        out_socket.connect(('127.0.0.1', router_port))
+        out_socket.send(
+            
+class RIP_Packet:
+    
                 

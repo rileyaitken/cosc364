@@ -59,9 +59,11 @@ def main(argv):
         sock.bind(('127.0.0.1', port))
         
     out_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    out_sock.bind(('127.0.0.1', 6300))
     
     routing_table = create_table(output_costs, output_routerids, output_ports)
+    send_table(routing_table, output_ports, out_socket)
+    
+    
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
