@@ -1,7 +1,7 @@
 import socket
 import configparser
 import sys
-from functions import parse_ports
+from functions import parse_ports, create_table
 
 def main(argv):
     try:
@@ -36,12 +36,10 @@ def main(argv):
         outputs = outputs_str.split(',')
         for output in outputs:
             output_info = output.split('-')
-            print(output_info)
             output_ports.append(int(output_info[0]))
             output_costs.append(int(output_info[1]))
             output_routerids.append(int(output_info[2]))
-
-        print(output_routerids)
+            
         parse_ports(output_ports)
         
         for i in range(0, len(output_ports)):
@@ -57,9 +55,13 @@ def main(argv):
         sys.exit()
         
     for port in input_ports:
-        input_port_str = str(port)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind((input_port_str, port))        
+        sock.bind(('127.0.0.1', port))
+        
+    out_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    out_sock.bind(('127.0.0.1', 6300))
+    
+    routing_table = create_table(output_costs, output_routerids, output_ports)
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
