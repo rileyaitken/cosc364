@@ -1,7 +1,7 @@
 import socket
 import configparser
 import sys
-from functions import parse_ports, create_table
+from functions import parse_ports, create_table, INFINITY
 
 def main(argv):
     try:
