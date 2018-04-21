@@ -1,5 +1,9 @@
 import socket
+import sched
+import time
+
 INFINITY = 16
+HOST = socket.gethostname()
 
 def parse_ports(ports):
     for i in range(0, len(ports)):
@@ -32,8 +36,7 @@ def create_table(costs, routerids, outputs):
             
 def send_update(routing_table, neighbours, out_socket):
     for router_port in neighbours:
-        out_socket.connect(('127.0.0.1', router_port))
-        out_socket.send(routing_table)
+        out_socket.sendto(routing_table, (HOST, router_port))
         
 def process_update(routing_table, update_table):
     if rip_message.source_router not in neighbours:
@@ -53,24 +56,18 @@ def process_update(routing_table, update_table):
                         existing_route = True
                         existing_entry = entry
                 if existing_route:      
-                    if existing_entry[2] == rip_message.source_router:
-                        existing_entry[5] = 0 #Reset timeout to 0
-                        if existing_entry[0] != this_metric:
-                            existing_entry[0] = this_metric
-                            existing_entry[
-                            existing_entry[6] = True #Set change flag
-                            
-                            
+                    if existing_entry.next_hop == rip_message.source_router:
+                        existing_entry.timeout = 0 #Reset timeout to 0
+                        if existing_entry.cost != this_metric:
+                            existing_entry.cost = this_metric
+                            existing_entry.change_flag = True #Set change flag
                 else:
                     if this_metric < INFINITY:
                         new_entry = Route_Entry(this_metric, src_router_entry[1], rip_message.source_router, rte.destination_id, 0, 0, True)
                         routing_table.append(new_entry)
                         
                         
-                        
-                
-def triggered_update(            
-                              
+                                                     
 class Route_Entry:
     
     def __init__(self, cost, interface, next_hop, destination, timeout, garbage_timer, change_flag):
@@ -78,9 +75,9 @@ class Route_Entry:
         self.interface = interface
         self.next_hop = next_hop
         self.destination = destination
-        self.timeout
-        self.garbage_timer
-        self.change_flag
+        self.timeout = timeout
+        self.garbage_timer = garbage_timer
+        self.change_flag = change_flag
         
 class RIP_Entry:
     
