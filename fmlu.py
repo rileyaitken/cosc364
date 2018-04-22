@@ -4,7 +4,7 @@ import sys
 import random
 import time
 import select
-from functions import parse_ports, create_table, INFINITY, process_update, send_update
+from functions import parse_ports, create_table, INFINITY, process_update, send_update, print_routing_table
 
 def main(argv):
     
@@ -23,7 +23,7 @@ def main(argv):
         input_ports_str = config['ROUTER']['inputports']
         outputs_str = config['ROUTER']['outputports']
         timeout = int(config['TIMER']['timeout'])
-        update_timer = int(config['TIMER']['update'])
+        update = int(config['TIMER']['update'])
         
         if routerid < 1 or routerid > 64000:
             raise ValueError('Router id is not in the specified range')
@@ -53,7 +53,7 @@ def main(argv):
                 if output_ports[i] == input_ports[j]:
                     raise ValueError('A pair of input/output ports are equal')
         
-        if timeout / update_timer != 6:
+        if timeout / update != 6:
             raise ValueError('Incorrect timeout/update timer ratio')
         
     except ValueError as e:
@@ -69,13 +69,14 @@ def main(argv):
         
     out_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     
-    routing_table = create_table(output_costs, output_routerids, output_ports)
+    routing_table = create_table(output_costs, output_routerids, output_ports, timeout)
+    print_routing_table(routing_table)
     
     while loop == True:
         time_before = time.time()
         
         offset = random.randrange(-200, 200, 1)
-        update_timer = update_timer * (1 + (offset / 1000))
+        update_timer = update * (1 + (offset / 1000))
         
         readables, writables, exceptionables = select.select(in_socks, [], [], update_timer)
         

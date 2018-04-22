@@ -25,13 +25,12 @@ def convertPortsToInts(ports):
         new_ports.append(int(port))
     return new_ports
 
-def create_table(costs, routerids, outputs):
+def create_table(costs, routerids, outputs, timeout):
     
     routing_table = []
     for i in range(0, len(costs)):
-        entry = Route_Entry(costs[i], outputs[i], routerids[i], routerids[i], 0, 0, False) #Create an object of class Route_Entry
+        entry = Route_Entry(costs[i], outputs[i], routerids[i], routerids[i], timeout, (timeout * (2 / 3)), False) #Create an object of class Route_Entry
         routing_table.append(entry) #Add this Route_Entry object to the routing_table
-    print(routing_table)
     return routing_table
             
 def send_update(routing_table, neighbours, out_socket):
@@ -66,7 +65,13 @@ def process_update(routing_table, update_table):
                         new_entry = Route_Entry(this_metric, src_router_entry[1], rip_message.source_router, rte.destination_id, 0, 0, True)
                         routing_table.append(new_entry)
                         
-                        
+    
+def print_routing_table(routing_table):
+    print(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+    print(" Dest  Cost  Interface Next-hop Timeout Garbage Change-Flag")    
+    for entry in routing_table:
+        print("   %d     %d     %d      %d        %d     %d         %d  " % (entry.destination, entry.cost, entry.interface, entry.next_hop, entry.timeout, entry.garbage_timer, entry.change_flag))
+    print(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
                                                      
 class Route_Entry:
     
@@ -85,4 +90,5 @@ class RIP_Entry:
         self.address_family = address_family
         self.source_router = source
         self.metric = metric
+        
         
