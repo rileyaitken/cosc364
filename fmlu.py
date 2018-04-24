@@ -73,10 +73,14 @@ def main(argv):
     print_routing_table(routing_table)
     
     while loop == True:
+        
         time_before = time.time()
         
+        if triggered_updates_table.length > 0:
+            triggered_update(triggered_updates_table)
+            
         offset = random.randrange(-200, 200, 1)
-        update_timer = update * (1 + (offset / 1000))
+        update_timer = update *s (1 + (offset / 1000))
         
         readables, writables, exceptionables = select.select(in_socks, [], [], update_timer)
         
@@ -85,15 +89,20 @@ def main(argv):
             
         time_after = time.time()
         
-        for entry in routing_table:
+        triggered_update_table = []
+        for i in range(0, len(routing_table)):
+            entry = routing_table[i]
             
             if entry.timeout != 420:
-                entry.timeout += time_after - time_before
+                entry.timeout -= time_after - time_before
                 if entry.timeout >= timeout:
+                    entry.cost = INFINITY
                     entry.timeout = 420
+                    entry.change_flag = 1
+                    triggered_update_table.append(entry)
             else:
-                entry.garbage_timer += time_after - time_before
-                if entry.garbage_timer >= (timeout * (2 / 3)):
+                entry.garbage_timer -= time_after - time_before
+                if entry.garbage_timer <= 0:
                     delete_route(entry)
                     
         

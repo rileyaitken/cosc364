@@ -35,7 +35,8 @@ def create_table(costs, routerids, outputs, timeout):
             
 def send_update(routing_table, neighbours, out_socket):
     for router_port in neighbours:
-        out_socket.sendto(routing_table, (HOST, router_port))
+        routing_table_copy = split_horizon_preverse(routing_table, router_port)
+        out_socket.sendto(routing_table_copy, (HOST, router_port))
         
 def process_update(routing_table, update_table):
     if rip_message.source_router not in neighbours:
@@ -72,6 +73,12 @@ def print_routing_table(routing_table):
     for entry in routing_table:
         print("   %d     %d     %d      %d        %d     %d         %d  " % (entry.destination, entry.cost, entry.interface, entry.next_hop, entry.timeout, entry.garbage_timer, entry.change_flag))
     print(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+    
+def split_horizon_preverse(routing_table, neighbour_port):
+    for entry in routing_table:
+        if entry.interface == neighbour_port:
+            entry.cost = INFINITY
+    return routing_table
                                                      
 class Route_Entry:
     
