@@ -85,7 +85,7 @@ def main(argv):
         readables, writables, exceptionables = select.select(in_socks, [], [], update_timer)
         
         if not (readables, writables, exceptionables):
-            send_update(routing_table, output_ports, out_sock)
+            send_update(routing_table, output_ports, out_sock, router_id)
             
         time_after = time.time()
         

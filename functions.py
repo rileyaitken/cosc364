@@ -1,6 +1,7 @@
 import socket
 import sched
 import time
+from struct import Struct
 
 INFINITY = 16
 HOST = socket.gethostname()
@@ -33,37 +34,40 @@ def create_table(costs, routerids, outputs, timeout):
         routing_table.append(entry) #Add this Route_Entry object to the routing_table
     return routing_table
             
-def send_update(routing_table, neighbours, out_socket):
+def send_update(routing_table, neighbours, out_socket, router_id):
     for router_port in neighbours:
         routing_table_copy = split_horizon_preverse(routing_table, router_port)
-        out_socket.sendto(routing_table_copy, (HOST, router_port))
+        packet = Packet.header_to_bytes(router_id)
+        for entry in routing_table_copy:
+            packet += Packet.entry_to_bytes(entry)
+        out_socket.sendto(packet, (HOST, router_port))
         
-def process_update(routing_table, update_table):
-    if rip_message.source_router not in neighbours:
+def process_update(routing_table, entries, source_router, neighbours):
+    if source_router not in neighbours:
         pass
     else:
         for entry in routing_table:
-            if entry.destination == rip_message.source_router:
+            if entry.destination == source_router:
                 src_router_entry = entry
-        for rte in rip_message.rtes:
-            if rte.metric >= INFINITY or rte.metric < 1:
+        for rip_entry in entries:
+            if rip_entry.metric >= INFINITY or rip_entry.metric < 1:
                 pass
             else:
-                this_metric = min(rte.metric + src_router_entry[0], INFINITY)
+                this_metric = min(rip_entry.metric + src_router_entry[0], INFINITY)
                 existing_route = False
                 for entry in routing_table:
-                    if entry.destination == rte.destination_id:
+                    if entry.destination == rip_entry.destination_id:
                         existing_route = True
                         existing_entry = entry
                 if existing_route:      
-                    if existing_entry.next_hop == rip_message.source_router:
+                    if existing_entry.next_hop == source_router:
                         existing_entry.timeout = 0 #Reset timeout to 0
                         if existing_entry.cost != this_metric:
                             existing_entry.cost = this_metric
                             existing_entry.change_flag = True #Set change flag
                 else:
                     if this_metric < INFINITY:
-                        new_entry = Route_Entry(this_metric, src_router_entry[1], rip_message.source_router, rte.destination_id, 0, 0, True)
+                        new_entry = Route_Entry(this_metric, src_router_entry[1], source_router, rip_entry.destination_id, 0, 0, True)
                         routing_table.append(new_entry)
                         
     
@@ -93,9 +97,41 @@ class Route_Entry:
         
 class RIP_Entry:
     
-    def __init__(self, address_family, source, metric):
+    def __init__(self, address_family, destination, interface, metric):
         self.address_family = address_family
-        self.source_router = source
+        self.destination_router = destination
+        self.interface = interface
         self.metric = metric
+        
+class Packet:
+    
+    entry_struct = Struct('!Hiii')
+    header_struct = Struct('!BBH')
+    
+    def header_to_bytes(self, router_id):
+        header = self.header_struct.pack(
+            2, 1, router_id)
+        return header
+    
+    def entry_to_bytes(self, entry):
+        rip_entry = self.entry_struct.pack(
+            2, entry.destination, entry.cost, entry.interface)
+        return rip_entry
+    
+    def from_bytes(self, byte_str):
+        index = self.header_struct.size
+        command, version, source_router = self.header_struct.unpack(byte_str[:index])
+        if command != 2 or version != 1:
+            raise ValueError('Incorrect command/version')
+    
+        entries = []
+        entries_str = byte_str[index:]
+        for i in range(self.entry_struct.size, len(entries_str), self.entry_struct.size):
+            address_family, destination, cost, interface = entry_struct.unpack(entries_str[:i])
+            entry = RIP_Entry(address_family, destination, interface, cost)
+            entries.append(entry)
+            
+        return entries, source_router
+            
         
         
