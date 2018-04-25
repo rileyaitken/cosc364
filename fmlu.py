@@ -4,7 +4,8 @@ import sys
 import random
 import time
 import select
-from functions import parse_ports, create_table, INFINITY, process_update, send_update, print_routing_table
+from functions import parse_ports, create_table, INFINITY, process_update, send_update, print_routing_table, extract_fields
+
 
 def main(argv):
     
@@ -19,13 +20,13 @@ def main(argv):
         config = configparser.ConfigParser()
         config.read(configFile);
         
-        routerid = int(config['ROUTER']['routerid'])
+        router_id = int(config['ROUTER']['routerid'])
         input_ports_str = config['ROUTER']['inputports']
         outputs_str = config['ROUTER']['outputports']
         timeout = int(config['TIMER']['timeout'])
         update = int(config['TIMER']['update'])
         
-        if routerid < 1 or routerid > 64000:
+        if router_id < 1 or router_id > 64000:
             raise ValueError('Router id is not in the specified range')
         
         input_ports = []
@@ -76,20 +77,20 @@ def main(argv):
         
         time_before = time.time()
         
-        if triggered_updates_table.length > 0:
-            triggered_update(triggered_updates_table)
+        #if triggered_updates_table.length > 0:
+            #triggered_update(triggered_updates_table)
             
         offset = random.randrange(-200, 200, 1)
-        update_timer = update *s (1 + (offset / 1000))
+        update_timer = update * (1 + (offset / 1000))
         
         readables, writables, exceptionables = select.select(in_socks, [], [], update_timer)
-        
-        if not (readables, writables, exceptionables):
+        print(readables, writables, exceptionables)
+        if not (readables or writables or exceptionables):
+            print("Sending update")
             send_update(routing_table, output_ports, out_sock, router_id)
             
         time_after = time.time()
         
-        triggered_update_table = []
         for i in range(0, len(routing_table)):
             entry = routing_table[i]
             
@@ -104,6 +105,8 @@ def main(argv):
                 entry.garbage_timer -= time_after - time_before
                 if entry.garbage_timer <= 0:
                     delete_route(entry)
+                    
+        print_routing_table(routing_table)
                     
         
             

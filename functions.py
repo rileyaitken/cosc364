@@ -5,6 +5,8 @@ from struct import Struct
 
 INFINITY = 16
 HOST = socket.gethostname()
+entry_struct = Struct('!Hiii')
+header_struct = Struct('!BBH')
 
 def parse_ports(ports):
     for i in range(0, len(ports)):
@@ -37,9 +39,10 @@ def create_table(costs, routerids, outputs, timeout):
 def send_update(routing_table, neighbours, out_socket, router_id):
     for router_port in neighbours:
         routing_table_copy = split_horizon_preverse(routing_table, router_port)
-        packet = Packet.header_to_bytes(router_id)
+        packet = header_to_bytes(router_id)
         for entry in routing_table_copy:
-            packet += Packet.entry_to_bytes(entry)
+            packet += entry_to_bytes(entry)
+        print(packet)
         out_socket.sendto(packet, (HOST, router_port))
         
 def process_update(routing_table, entries, source_router, neighbours):
@@ -102,36 +105,31 @@ class RIP_Entry:
         self.destination_router = destination
         self.interface = interface
         self.metric = metric
-        
-class Packet:
+          
+def header_to_bytes(router_id):
+    header = header_struct.pack(
+        2, 1, router_id)
+    return header
     
-    entry_struct = Struct('!Hiii')
-    header_struct = Struct('!BBH')
+def entry_to_bytes(entry):
+    rip_entry = entry_struct.pack(
+        2, entry.destination, entry.cost, entry.interface)
+    return rip_entry
     
-    def header_to_bytes(self, router_id):
-        header = self.header_struct.pack(
-            2, 1, router_id)
-        return header
+def extract_fields(byte_str):
+    index = header_struct.size
+    command, version, source_router = header_struct.unpack(byte_str[:index])
+    if command != 2 or version != 1:
+        raise ValueError('Incorrect command/version')
     
-    def entry_to_bytes(self, entry):
-        rip_entry = self.entry_struct.pack(
-            2, entry.destination, entry.cost, entry.interface)
-        return rip_entry
-    
-    def from_bytes(self, byte_str):
-        index = self.header_struct.size
-        command, version, source_router = self.header_struct.unpack(byte_str[:index])
-        if command != 2 or version != 1:
-            raise ValueError('Incorrect command/version')
-    
-        entries = []
-        entries_str = byte_str[index:]
-        for i in range(self.entry_struct.size, len(entries_str), self.entry_struct.size):
-            address_family, destination, cost, interface = entry_struct.unpack(entries_str[:i])
-            entry = RIP_Entry(address_family, destination, interface, cost)
-            entries.append(entry)
+    entries = []
+    entries_str = byte_str[index:]
+    for i in range(entry_struct.size, len(entries_str), entry_struct.size):
+        address_family, destination, cost, interface = entry_struct.unpack(entries_str[:i])
+        entry = RIP_Entry(address_family, destination, interface, cost)
+        entries.append(entry)
             
-        return entries, source_router
+    return entries, source_router
             
         
         
