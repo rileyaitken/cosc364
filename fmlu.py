@@ -84,10 +84,13 @@ def main(argv):
         update_timer = update * (1 + (offset / 1000))
         
         readables, writables, exceptionables = select.select(in_socks, [], [], update_timer)
-        print(readables, writables, exceptionables)
-        if not (readables or writables or exceptionables):
-            print("Sending update")
-            send_update(routing_table, output_ports, out_sock, router_id)
+
+        if readables:
+            for sock in readables:
+                print("Hello received packet thankyou")
+                packet = sock.recv(2**16)
+                entries, source_router = extract_fields(packet)
+                process_update(routing_table, entries, source_router, output_ports)
             
         time_after = time.time()
         
@@ -100,12 +103,13 @@ def main(argv):
                     entry.cost = INFINITY
                     entry.timeout = 420
                     entry.change_flag = 1
-                    triggered_update_table.append(entry)
+                    #triggered_update_table.append(entry)
             else:
                 entry.garbage_timer -= time_after - time_before
                 if entry.garbage_timer <= 0:
                     delete_route(entry)
-                    
+            
+        send_update(routing_table, output_ports, output_routerids, out_sock, router_id)           
         print_routing_table(routing_table)
                     
         

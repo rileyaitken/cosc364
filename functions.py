@@ -36,9 +36,10 @@ def create_table(costs, routerids, outputs, timeout):
         routing_table.append(entry) #Add this Route_Entry object to the routing_table
     return routing_table
             
-def send_update(routing_table, neighbours, out_socket, router_id):
-    for router_port in neighbours:
-        routing_table_copy = split_horizon_preverse(routing_table, router_port)
+def send_update(routing_table, neighbour_ports, neighbour_ids, out_socket, router_id):
+    for i in range(0, len(neighbour_ports)):
+        router_port = neighbour_ports[i]
+        routing_table_copy = split_horizon_preverse(routing_table, neighbour_ids[i])
         packet = header_to_bytes(router_id)
         for entry in routing_table_copy:
             packet += entry_to_bytes(entry)
@@ -81,9 +82,9 @@ def print_routing_table(routing_table):
         print("   %d     %d     %d      %d        %d     %d         %d  " % (entry.destination, entry.cost, entry.interface, entry.next_hop, entry.timeout, entry.garbage_timer, entry.change_flag))
     print(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
     
-def split_horizon_preverse(routing_table, neighbour_port):
+def split_horizon_preverse(routing_table, neighbour_id):
     for entry in routing_table:
-        if entry.interface == neighbour_port:
+        if entry.next_hop == neighbour_id:
             entry.cost = INFINITY
     return routing_table
                                                      
@@ -119,13 +120,18 @@ def entry_to_bytes(entry):
 def extract_fields(byte_str):
     index = header_struct.size
     command, version, source_router = header_struct.unpack(byte_str[:index])
+    print(command, version, source_router)
     if command != 2 or version != 1:
         raise ValueError('Incorrect command/version')
     
     entries = []
     entries_str = byte_str[index:]
-    for i in range(entry_struct.size, len(entries_str), entry_struct.size):
-        address_family, destination, cost, interface = entry_struct.unpack(entries_str[:i])
+    print(len(entries_str))
+    for i in range(0, len(entries_str) - 14, entry_struct.size):
+        print(entries_str[:i])
+        print(i)
+        address_family, destination, cost, interface = entry_struct.unpack(entries_str[i:i+14])
+        print(address_family, destination, cost, interface)
         entry = RIP_Entry(address_family, destination, interface, cost)
         entries.append(entry)
             
